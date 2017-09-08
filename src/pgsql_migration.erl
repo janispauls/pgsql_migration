@@ -40,8 +40,8 @@ migrate(Conn, Version, Dir) ->
                     true ->
                         Acc
                 end
-            end, [], Migrations),
-            {down, lists:reverse(Downgraded)};
+            end, [], lists:reverse(Migrations)),
+            {down, Downgraded};
         {ok, _, []} ->
             %% full upgrade path
             Upgraded = lists:foldl(fun({V, UpDown}, Acc) ->
