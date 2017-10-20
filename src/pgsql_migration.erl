@@ -57,10 +57,14 @@ migrate(Conn, Version, Dir) ->
 
 migrations(Dir) ->
     {ok, Files} = file:list_dir(Dir),
-    lists:map(fun(Filename) ->
-        {ok, Migs} = eql:compile(filename:join([Dir, Filename])),
-        {version_from_filename(Filename), Migs}
-    end, lists:usort(Files)).
+    Paths = [filename:join([Dir, F]) || F <- lists:usort(Files),
+                                        filelib:is_file(F)],
+    lists:map(
+      fun(Path) ->
+              {ok, Migs} = eql:compile(Path),
+              {version_from_filename(filename:basename(Path)), Migs}
+      end,
+      Paths).
 
 use_driver(Name) ->
     application:set_env(pgsql_migration, driver, Name).
