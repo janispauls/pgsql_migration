@@ -58,7 +58,7 @@ migrate(Conn, Version, Dir) ->
 migrations(Dir) ->
     {ok, Files} = file:list_dir(Dir),
     Paths = [filename:join([Dir, F]) || F <- lists:usort(Files),
-                                        filelib:is_file(F)],
+                                        not filelib:is_dir(filename:join(Dir, F))],
     lists:map(
       fun(Path) ->
               {ok, Migs} = eql:compile(Path),
