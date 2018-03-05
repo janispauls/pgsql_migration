@@ -23,35 +23,35 @@ migrate(Conn, Version, Dir) ->
             %% upgrade path
             FromVersion = binary_to_list(Top),
             Upgraded = lists:foldl(fun({V, UpDown}, Acc) ->
-                if
-                    V =< Version andalso V > FromVersion ->
-                        [exec(up, Conn, V, UpDown) | Acc];
-                    true ->
-                        Acc
-                end
-            end, [], Migrations),
+                                           if
+                                               V =< Version andalso V > FromVersion ->
+                                                   [exec(up, Conn, V, UpDown) | Acc];
+                                               true ->
+                                                   Acc
+                                           end
+                                   end, [], Migrations),
             {up, lists:reverse(Upgraded)};
         {ok, _, [{Top}|_]} when Top > BinVersion ->
             %% downgrade path
             Downgraded = lists:foldl(fun({V, UpDown}, Acc) ->
-                if
-                    V >= Version ->
-                        [exec(down, Conn, V, UpDown) | Acc];
-                    true ->
-                        Acc
-                end
-            end, [], lists:reverse(Migrations)),
+                                             if
+                                                 V >= Version ->
+                                                     [exec(down, Conn, V, UpDown) | Acc];
+                                                 true ->
+                                                     Acc
+                                             end
+                                     end, [], lists:reverse(Migrations)),
             {down, Downgraded};
         {ok, _, []} ->
             %% full upgrade path
             Upgraded = lists:foldl(fun({V, UpDown}, Acc) ->
-                if
-                    V =< Version ->
-                        [exec(up, Conn, V, UpDown) | Acc];
-                    true ->
-                        Acc
-                end
-            end, [], Migrations),
+                                           if
+                                               V =< Version ->
+                                                   [exec(up, Conn, V, UpDown) | Acc];
+                                               true ->
+                                                   Acc
+                                           end
+                                   end, [], Migrations),
             {up, lists:reverse(Upgraded)}
     end.
 
@@ -59,12 +59,11 @@ migrations(Dir) ->
     {ok, Files} = file:list_dir(Dir),
     Paths = [filename:join([Dir, F]) || F <- lists:usort(Files),
                                         not filelib:is_dir(filename:join(Dir, F))],
-    lists:map(
-      fun(Path) ->
-              {ok, Migs} = eql:compile(Path),
-              {version_from_filename(filename:basename(Path)), Migs}
-      end,
-      Paths).
+    Res = lists:map(fun(Path) ->
+                            {ok, Migs} = eql:compile(Path),
+                            {version_from_filename(filename:basename(Path)), Migs}
+              end, Paths),
+    Res.
 
 use_driver(Name) ->
     application:set_env(pgsql_migration, driver, Name).
@@ -74,7 +73,7 @@ use_driver(Name) ->
 %%
 
 exec(Type, Conn, Version, UpDown) ->
-    Query = eql:get_query(Type, UpDown),
+    {ok, Query} = eql:get_query(Type, UpDown),
     case if_ok(exec_transaction(Conn, Query)) of
         skip ->
             {Version, skip};
